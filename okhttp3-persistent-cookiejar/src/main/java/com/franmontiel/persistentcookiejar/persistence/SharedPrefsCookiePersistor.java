@@ -31,13 +31,19 @@ import okhttp3.Cookie;
 public class SharedPrefsCookiePersistor implements CookiePersistor {
 
     private final SharedPreferences sharedPreferences;
+    private final CookieSerializer cookieSerializer;
 
     public SharedPrefsCookiePersistor(Context context) {
         this(context.getSharedPreferences("CookiePersistence", Context.MODE_PRIVATE));
     }
 
     public SharedPrefsCookiePersistor(SharedPreferences sharedPreferences) {
+        this(sharedPreferences, new HexStringCookieSerializer());
+    }
+
+    public SharedPrefsCookiePersistor(SharedPreferences sharedPreferences, CookieSerializer cookieSerializer) {
         this.sharedPreferences = sharedPreferences;
+        this.cookieSerializer = cookieSerializer;
     }
 
     @Override
@@ -46,7 +52,7 @@ public class SharedPrefsCookiePersistor implements CookiePersistor {
 
         for (Map.Entry<String, ?> entry : sharedPreferences.getAll().entrySet()) {
             String serializedCookie = (String) entry.getValue();
-            Cookie cookie = new SerializableCookie().decode(serializedCookie);
+            Cookie cookie = cookieSerializer.deserialize(serializedCookie);
             cookies.add(cookie);
         }
         return cookies;
@@ -56,7 +62,7 @@ public class SharedPrefsCookiePersistor implements CookiePersistor {
     public void saveAll(Collection<Cookie> cookies) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         for (Cookie cookie : cookies) {
-            editor.putString(createCookieKey(cookie), new SerializableCookie().encode(cookie));
+            editor.putString(createCookieKey(cookie), cookieSerializer.serialize(cookie));
         }
         editor.commit();
     }
